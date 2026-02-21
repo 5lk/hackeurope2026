@@ -125,7 +125,7 @@ class Manager:
     def _format_plan_prompt(self, user_prompt: str) -> str:
         return (
             "You are a technical project manager. "
-            "Classify work into architecture, implementation, and testing. "
+            "Decompose the work into architecture, implementation, and testing. "
             "You never write code. Every implementation task must reference an "
             "architecture task ID. Every testing task must reference an "
             "implementation task ID.\n\n"

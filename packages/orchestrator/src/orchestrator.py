@@ -183,6 +183,7 @@ class Orchestrator:
                         queue.set_status(next_task.id, "complete", result=handoff)
 
                         self.manager.mark_complete(next_task.id)
+                        self.attach_handoff(handoff)
                         self._apply_handoff_to_context(handoff)
                         all_handoffs.append(handoff)
                         self.output_writer.write_handoff_summary(handoff)
@@ -203,6 +204,8 @@ class Orchestrator:
         if task.domain == "implementation":
             self.swe.architect_handoff = self._latest_architect_handoff()
             self.swe.existing_implementations = self._collaboration_notes()
+            if self.swe.architect_handoff:
+                self._write_arch_file_plan(self.swe.architect_handoff)
         if task.domain == "testing":
             self.qa.swe_handoffs = self._swe_handoffs()
             self.qa.architect_handoff = self._latest_architect_handoff()
@@ -211,12 +214,33 @@ class Orchestrator:
     def _apply_handoff_to_context(self, handoff: Handoff) -> None:
         if isinstance(handoff, ArchitectHandoff):
             self.manager.apply_handoffs(architect_artifacts=handoff.artifacts)
+            self._write_arch_file_plan(handoff)
         if isinstance(handoff, QAHandoff):
             report = (
                 f"Coverage line={handoff.coverage_report.line_coverage:.2f}, "
                 f"branch={handoff.coverage_report.branch_coverage:.2f}"
             )
             self.manager.apply_handoffs(qa_reports=[report])
+
+    def _write_arch_file_plan(self, handoff: ArchitectHandoff) -> None:
+        if not handoff.file_plan:
+            return
+        output_root = Path(self.config.output_dir)
+        output_root.mkdir(parents=True, exist_ok=True)
+        arch_path = output_root / "ARCH.md"
+        lines = [
+            "# Architecture",
+            "",
+            "## File Plan",
+        ]
+        if handoff.file_plan.files:
+            lines.extend([f"- {path}" for path in handoff.file_plan.files])
+        else:
+            lines.append("- (No additional design files specified)")
+        if handoff.file_plan.notes:
+            lines.extend(["", "## File Plan Notes"])
+            lines.extend([f"- {note}" for note in handoff.file_plan.notes])
+        arch_path.write_text("\n".join(lines).strip() + "\n", encoding="utf-8")
 
     def _latest_architect_handoff(self) -> Optional[ArchitectHandoff]:
         handoffs = [

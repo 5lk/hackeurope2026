@@ -1,135 +1,31 @@
 # Handoff: arch-1
 
-**Summary**: Here is a summary of the design artifacts for the Game State and Component Architecture.
-
-### 1. Architecture/Design Artifacts
-
-I will create a top-level `ARCH.md` file in the project root.
-
-**`ARCH.md`**
-
--   **1. Overview**: Describes the core components (`Board`, `Snake`, `Food`) as the fundamental data structures for the game state. All game logic will operate on these components.
--   **2. Module Organization**:
-    -   `game/common/types.py`: Defines shared, primitive data types used across all components, such as `Position` and `Direction`.
-    -   `game/board.py`: Defines the `Board` component, responsible for game area boundaries.
-    -   `game/snake.py`: Defines the `Snake` component, responsible for its own state, movement, and growth.
-    -   `game/food.py`: Defines the `Food` component, representing a consumable item.
--   **3. Data Flow**: The main game loop (to be defined in a separate `game/engine.py` module) will hold instances of `Board`, `Snake`, and `Food`. On each tick, the engine will:
-    1.  Query for user input to potentially change the snake's direction.
-    2.  Call `snake.move()`.
-    3.  Check for collisions:
-        -   Snake head vs. Board boundaries.
-        -   Snake head vs. Snake body.
-        -   Snake head vs. Food position.
-    4.  Update game state (e.g., call `snake.grow()` and generate new food on collision).
--   **4. Error Handling**: Invalid state transitions (e.g., moving the snake out of bounds, reversing direction) will raise exceptions (`ValueError`, `InvalidMoveError`) to be handled by the game engine.
-
----
-
-### 2. Python Interfaces and Types
-
-The following types and interfaces will be defined.
-
-**File: `game/common/types.py`**
-
-```python
-from typing import NamedTuple
-from enum import Enum, auto
-
-class Position(NamedTuple):
-    """Represents an (x, y) coordinate on the game board."""
-    x: int
-    y: int
-
-class Direction(Enum):
-    """Represents the four cardinal directions of movement."""
-    UP = auto()
-    DOWN = auto()
-    LEFT = auto()
-    RIGHT = auto()
-```
-
-**File: `game/board.py`**
-
-```python
-from game.common.types import Position
-
-class Board:
-    """Defines the game area and its boundaries."""
-    width: int
-    height: int
-
-    def __init__(self, width: int, height: int) -> None: ...
-
-    def is_within_bounds(self, position: Position) -> bool:
-        """Checks if a given position is within the board's dimensions."""
-        ...
-```
-
-**File: `game/food.py`**
-
-```python
-from game.common.types import Position
-
-class Food:
-    """Represents a food item at a specific position."""
-    position: Position
-
-    def __init__(self, position: Position) -> None: ...
-```
-
-**File: `game/snake.py`**
-
-```python
-from collections.abc import Sequence
-from game.common.types import Position, Direction
-
-class Snake:
-    """Represents the snake, its body, and its movement."""
-    body: Sequence[Position]
-    direction: Direction
-
-    def __init__(self, initial_body: Sequence[Position], initial_direction: Direction) -> None: ...
-
-    @property
-    def head(self) -> Position:
-        """Returns the position of the snake's head."""
-        ...
-
-    def move(self) -> None:
-        """Updates the snake's body segments based on its current direction."""
-        ...
-
-    def grow(self) -> None:
-        """Adds a new segment to the end of the snake's body."""
-        ...
-
-    def change_direction(self, new_direction: Direction) -> None:
-        """
-        Sets a new direction for the snake's next move.
-        Raises InvalidMoveError if the new direction is opposite to the current one.
-        """
-        ...
-
-    def check_self_collision(self) -> bool:
-        """Checks if the snake's head has collided with its body."""
-        ...
-```
-
----
-
-### 3. Module Contracts and Invariants
-
--   **`common.types`**:
-    -   `Position` coordinates (`x`, `y`) must be non-negative integers.
--   **`board.Board`**:
-    -   `width` and `height` must be positive integers upon initialization.
-    -   The board's dimensions are immutable after creation.
--   **`snake.Snake`**:
-    -   `body` must be a non-empty sequence of unique `Position`s.
+**Summary**: Architect lead completed 8 subtasks for Define Game Architecture and Components.
 
 ## Artifacts
-- output\ARCH.md
+- output\ARCH_arch-1_3.md
+- output\components\bird\DESIGN.md
+- output\ARCH_arch-1_8.md
+- output\docs\ui_scoring_design.md
+- output\ARCH_arch-1_4.md
+- output\game\obstacles\DESIGN.md
+- output\ARCH_arch-1_2.md
+- output\docs\core\GAME_LOOP_ARCH.md
+- output\ARCH_arch-1_6.md
+- output\rendering\DESIGN.md
+- output\ARCH_arch-1_5.md
+- output\docs\designs\collision_system.md
+- output\ARCH_arch-1_7.md
+- output\src\input\DESIGN.md
+- output\ARCH_arch-1_1.md
+- output\docs\game_state\DESIGN.md
 
 ## Notes
-- Architect instance completed (summary only).
+- Subtask arch-1.3: This document specifies the design contract for the Bird component. It defines the component's state, properties, methods, and physics-related behavior, including its response to gravity and user-initiated flapping.
+- Subtask arch-1.8: This design specifies the contracts for the `ScoreManager` and `UISystem` modules. The `ScoreManager` is responsible for the logic of tracking, incrementing, and storing the player's score. The `UISystem` is responsible for rendering the score and game-over information. Communication is event-driven, with the `ScoreManager` emitting signals that the `UISystem` consumes to update the display, ensuring a clean separation of concerns between game logic and presentation.
+- Subtask arch-1.4: This design specifies the contracts for the `Pipe` and `PipeManager` components. The `Pipe` component is a data structure representing a pair of obstacles with defined physical properties and hitboxes. The `PipeManager` is responsible for the entire lifecycle of these pipes, including spawning them at regular intervals, updating their positions as they move across the screen, and removing them once they are no longer visible. This separation of concerns allows the `Pipe` to be a simple data object while the `PipeManager` encapsulates the complex game logic for obstacle management.
+- Subtask arch-1.2: This architecture defines the core game loop, which orchestrates the main phases of the game: input processing, state updates, and rendering. The design centers on a `GameLoop` class that drives the execution flow and a `Game` class that manages the overall application lifecycle and the active `GameState`. The loop operates on a frame-by-frame basis, calculating delta time to ensure frame-rate independent updates. Responsibilities are delegated to the current `GameState`, which encapsulates the logic for a specific part of the game (e.g., menu, gameplay).
+- Subtask arch-1.6: This design specifies a rendering abstraction layer that decouples game logic from the Pygame library. It introduces a `Drawable` protocol for any game object that needs to be drawn, and a `Renderer` class responsible for managing the display surface and orchestrating the rendering of all `Drawable` objects each frame.
+- Subtask arch-1.5: This document outlines the design for a collision detection system. The system is centered around a `CollisionSystem` module that processes a list of objects conforming to a `Collidable` interface. Game entities like `Bird` and `Pipe` will implement this interface by providing a geometric bounding box. The `CollisionSystem` checks for overlaps between these boxes and with world boundaries. Upon detection, it generates and dispatches `CollisionEvent` data objects to be handled by the main game state manager, triggering game-over conditions.
+- Subtask arch-1.7: This design outlines an event-driven input handling system. The `InputHandler` module is responsible for capturing raw Pygame events, translating them into abstract `GameCommand` objects, and placing them on a queue. The main `Game` module consumes these commands from the queue during its update loop and dispatches them to the relevant game logic, decoupling input processing from game state management.
+- Subtask arch-1.1: This design outlines a state machine pattern for managing game flow. The `Game` class acts as the context, managing a stack of `GameState` objects. Each `GameState` (e.g., MainMenu, Playing) is a self-contained module responsible for its own event handling, logic updates, and rendering. Transitions between states are managed explicitly by the `Game` class in response to requests from the active state.

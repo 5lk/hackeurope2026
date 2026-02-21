@@ -41,6 +41,13 @@ class ModuleContract:
 
 
 @dataclass
+class ArchitectureFilePlan:
+    files: List[str]
+    notes: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass
 class Handoff:
     task_id: str
     summary: str
@@ -52,6 +59,7 @@ class Handoff:
 @dataclass
 class ArchitectHandoff(Handoff):
     contracts: List[ModuleContract] = field(default_factory=list)
+    file_plan: Optional[ArchitectureFilePlan] = None
 
 
 @dataclass
