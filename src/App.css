@@ -130,7 +130,8 @@
 
 .prompt-body {
   width: 100%;
-  background: rgba(30, 41, 59, 0.4); /* sleek translucent dark */
+  background: rgba(30, 41, 59, 0.4);
+  /* sleek translucent dark */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.1);
@@ -196,6 +197,7 @@
 }
 
 @keyframes blink {
+
   0%,
   100% {
     opacity: 1;
@@ -375,7 +377,8 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center horizontally */
+  align-items: center;
+  /* Center horizontally */
   overflow-x: auto;
   padding-bottom: 80px;
 }
@@ -383,15 +386,18 @@
 .tree-node-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Stack vertically, center horizontally */
+  align-items: center;
+  /* Stack vertically, center horizontally */
   position: relative;
 }
 
 .tree-children {
   display: flex;
-  flex-direction: column; /* Force children into a vertical column flowing downwards */
+  flex-direction: column;
+  /* Force children into a vertical column flowing downwards */
   align-items: center;
-  gap: 48px; /* Vertical gap between nodes */
+  gap: 48px;
+  /* Vertical gap between nodes */
   padding-top: 48px;
   position: relative;
   width: 100%;
@@ -415,13 +421,15 @@
 .tree-child-wrapper {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center the node card */
+  align-items: center;
+  /* Center the node card */
   position: relative;
   width: 100%;
 }
 
 .tree-child-wrapper::before {
-  display: none; /* Removed the previous horizontal grid lines */
+  display: none;
+  /* Removed the previous horizontal grid lines */
 }
 
 /* Vertical branch drop-down connecting siblings below */
@@ -440,7 +448,8 @@
 }
 
 .tree-child-wrapper:last-child::after {
-  display: none; /* Last card in sequence doesn't connect downwards */
+  display: none;
+  /* Last card in sequence doesn't connect downwards */
 }
 
 @keyframes dataFlow {
@@ -448,11 +457,13 @@
     opacity: 0.4;
     box-shadow: 0 0 5px var(--accent-color);
   }
+
   50% {
     opacity: 1;
     box-shadow: 0 0 20px var(--accent-color), 0 0 40px rgba(59, 130, 246, 1);
     background: #60a5fa;
   }
+
   100% {
     opacity: 0.4;
     box-shadow: 0 0 5px var(--accent-color);
@@ -462,7 +473,8 @@
 /* Agent Card */
 .agent-card {
   padding: 24px;
-  width: 380px; /* Made the cards larger */
+  width: 380px;
+  /* Made the cards larger */
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -500,11 +512,13 @@
     box-shadow: 0 0 10px rgba(59, 130, 246, 0.2), inset 0 0 10px rgba(59, 130, 246, 0.1);
     border-color: rgba(59, 130, 246, 0.4);
   }
+
   100% {
     box-shadow: 0 0 25px rgba(59, 130, 246, 0.6), inset 0 0 20px rgba(59, 130, 246, 0.3);
     border-color: rgba(59, 130, 246, 1);
   }
 }
+
 .agent-header {
   display: flex;
   justify-content: space-between;
@@ -773,4 +787,21 @@
 .cursor-blink {
   border-left-color: var(--agent-border-hover);
   background: transparent;
+}
+
+.thought-link {
+  color: var(--accent-color);
+  font-size: 0.85rem;
+  text-decoration: none;
+  border-bottom: 1px dashed var(--accent-color);
+  width: fit-content;
+  transition: all 0.2s ease;
+  padding-bottom: 2px;
+}
+
+.thought-link:hover {
+  color: #3b82f6;
+  /* bright blue */
+  border-bottom-color: #3b82f6;
+  border-bottom-style: solid;
 }

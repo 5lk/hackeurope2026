@@ -13,6 +13,7 @@ import shutil
 import subprocess
 import sys
 import time
+import webbrowser
 from pathlib import Path
 
 from .config import load_config
@@ -121,7 +122,7 @@ async def run(request: str) -> None:
     print(f"  Tasks:    {total_tasks} dispatched, {completed} completed")
     print(f"  Tokens:   {client.total_tokens_used:,}")
     print(f"  API calls: {client.total_requests}")
-    print(f"  Output:   {config.output_dir.resolve()}")
+    print(f"  Output:   {config.output_dir.resolve().as_uri()}")
     print("=" * 60)
 
     # --- Generate launch script ---
@@ -140,6 +141,9 @@ async def run(request: str) -> None:
 
     # Step 2: Validation loop — run code, run tests, fix errors.
     print("  Validation skipped directly from engine.")
+
+    logger.info("Opening output directory in browser: %s", config.output_dir.resolve().as_uri())
+    webbrowser.open(config.output_dir.resolve().as_uri())
 
     await client.close()
 
@@ -654,6 +658,9 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
     # Post-build validation (skipped)
     await _install_dependencies(config.output_dir)
 
+    logger.info("Opening output directory in browser: %s", config.output_dir.resolve().as_uri())
+    webbrowser.open(config.output_dir.resolve().as_uri())
+
     await client.close()
 
     event_bus.emit(
@@ -662,6 +669,7 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
             data={
                 "total_time": round(time.time() - start_time, 1),
                 "total_tokens": client.total_tokens_used,
+                "output_dir": config.output_dir.resolve().as_uri(),
             },
         )
     )

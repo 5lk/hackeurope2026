@@ -246,7 +246,19 @@ const ThoughtModal = ({ agent, onClose }) => {
               <div className="thought-time">{thought.time}</div>
               <div className="thought-content">
                 <div className={`thought-status ${thought.status}`}></div>
-                <p>{thought.text}</p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  <p>{thought.text}</p>
+                  {thought.link && (
+                    <a
+                      href={thought.link}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="thought-link"
+                    >
+                      Open Local Output Directory
+                    </a>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
@@ -340,7 +352,7 @@ const VoiceWaveform = ({ isListening }) => {
     return () => {
       if (requestRef.current) cancelAnimationFrame(requestRef.current);
       if (audioContextRef.current)
-        audioContextRef.current.close().catch(() => {});
+        audioContextRef.current.close().catch(() => { });
     };
   }, [isListening]);
 
@@ -751,6 +763,7 @@ export default function App() {
                 text: `All done! Total time: ${data?.total_time || "?"}s, tokens: ${data?.total_tokens?.toLocaleString() || "?"}`,
                 time,
                 status: "success",
+                link: data?.output_dir,
               },
             ],
           }))
