@@ -1,4 +1,4 @@
-# The Final Prompt
+# One Call
 
 A one‑prompt generation interface: capture a single conversation and turn it into a complete, user‑defined app output.
 
