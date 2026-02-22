@@ -22,3 +22,32 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+
+# IDE
+.idea/
+.vscode/
+.DS_Store
+
+# AgentSwarm
+output_project/
+logs/
+*.log
+
+# Claude
+.claude/
+
+# Misc
+*.zip

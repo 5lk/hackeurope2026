@@ -1,95 +1,108 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Network,
-  Activity,
   Cpu,
   X,
-  Plus,
-  Terminal,
-  Hexagon,
   Code,
   Server,
   TestTube,
   CheckCircle2,
-  ArrowRight,
-  MessageSquare,
   Mic,
 } from "lucide-react";
 import { Conversation } from "@elevenlabs/client";
 import "./App.css";
 
-const THOUGHT_TEMPLATES = {
-  Manager: [
-    "Parsing user intent from The Final Prompt...",
-    "Extracting core functional requirements...",
-    "Drafting feature specification document...",
-    "Identifying edge cases in user flow...",
-    "Allocating tasks for Architect phase...",
-  ],
-  Architect: [
-    "Evaluating tech stack alternatives...",
-    "Designing microservices topology...",
-    "Scaffolding optimal file structure...",
-    "Defining database schemas and relations...",
-    "Establishing API contracts for SWEs...",
-  ],
-  SWE: [
-    "Writing boilerplate implementations...",
-    "Implementing core algorithmic logic...",
-    "Refactoring component state machine...",
-    "Resolving asynchronous race conditions...",
-    "Committing optimized code blocks...",
-  ],
-  QA: [
-    "Generating unit test coverage...",
-    "Running end-to-end integration tests...",
-    "Simulating high-concurrency load...",
-    "Identifying memory leak in sub-process...",
-    "Verifying security compliance...",
-  ],
+// ─── Tree helper functions (pure) ───────────────────────────────────────────────
+
+const updateNodeInTree = (nodes, targetId, updater) => {
+  return nodes.map((node) => {
+    if (node.id === targetId) return updater(node);
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: updateNodeInTree(node.children, targetId, updater),
+      };
+    }
+    return node;
+  });
 };
 
-const getThoughtsForRole = (role) => {
-  let templates;
-  if (role.includes("Manager")) templates = THOUGHT_TEMPLATES.Manager;
-  else if (role.includes("Architect")) templates = THOUGHT_TEMPLATES.Architect;
-  else if (role.includes("SWE")) templates = THOUGHT_TEMPLATES.SWE;
-  else if (role.includes("QA")) templates = THOUGHT_TEMPLATES.QA;
-  else templates = THOUGHT_TEMPLATES.SWE;
-
-  const count = Math.floor(Math.random() * 4) + 2;
-  return Array.from({ length: count }, (_, i) => ({
-    id: i,
-    text: templates[Math.floor(Math.random() * templates.length)],
-    time: new Date(Date.now() - Math.random() * 10000).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    }),
-    status: Math.random() > 0.2 ? "success" : "pending",
-  }));
+const addNodeToTree = (nodes, parentId, newChild) => {
+  if (!parentId) {
+    // No parent → add as child of root (first node)
+    return nodes.map((node, i) =>
+      i === 0 ? { ...node, children: [...node.children, newChild] } : node
+    );
+  }
+  return nodes.map((node) => {
+    if (node.id === parentId) {
+      return { ...node, children: [...node.children, newChild] };
+    }
+    if (node.children.length > 0) {
+      return {
+        ...node,
+        children: addNodeToTree(node.children, parentId, newChild),
+      };
+    }
+    return node;
+  });
 };
+
+const findNodeInTree = (nodes, targetId) => {
+  for (const node of nodes) {
+    if (node.id === targetId) return node;
+    if (node.children.length > 0) {
+      const found = findNodeInTree(node.children, targetId);
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+const teamToName = (team) => {
+  switch (team) {
+    case "product":
+      return "Product Agent";
+    case "engineering":
+      return "SWE Agent";
+    case "quality":
+      return "QA Agent";
+    default:
+      return "Agent";
+  }
+};
+
+const makeTimeStr = (timestamp) => {
+  const date = timestamp ? new Date(timestamp * 1000) : new Date();
+  return date.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+};
+
+// ─── Icon helper ────────────────────────────────────────────────────────────────
 
 const getIconForRole = (role, size = 18) => {
-  if (role.includes("Manager")) return <Network size={size} />;
-  if (role.includes("Architect")) return <Server size={size} />;
-  if (role.includes("SWE")) return <Code size={size} />;
-  if (role.includes("QA")) return <TestTube size={size} />;
+  if (role.includes("Manager") || role.includes("Planner"))
+    return <Network size={size} />;
+  if (role.includes("Product")) return <Server size={size} />;
+  if (role.includes("SWE") || role.includes("Engineering"))
+    return <Code size={size} />;
+  if (role.includes("QA") || role.includes("Quality"))
+    return <TestTube size={size} />;
   return <Cpu size={size} />;
 };
 
-const AgentNode = ({ agent, onSelect, onAddChild }) => {
+// ─── AgentNode Component ────────────────────────────────────────────────────────
+
+const AgentNode = ({ agent, onSelect }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleSelect = (e) => {
     e.stopPropagation();
-    onSelect(agent);
-  };
-
-  const handleAddChild = (e) => {
-    e.stopPropagation();
-    onAddChild(agent.id, agent.name);
+    onSelect(agent.id);
   };
 
   return (
@@ -98,7 +111,7 @@ const AgentNode = ({ agent, onSelect, onAddChild }) => {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.3 }}
-        className={`agent-card ${agent.status === "success" ? "completed-card" : ""}`}
+        className={`agent-card ${agent.status === "success" ? "completed-card" : ""} ${agent.status === "failed" ? "failed-card" : ""}`}
         onClick={handleSelect}
       >
         <div className="agent-header">
@@ -120,7 +133,7 @@ const AgentNode = ({ agent, onSelect, onAddChild }) => {
           <p className="task-desc">{agent.task}</p>
           <div className="progress-bar-container">
             <motion.div
-              className={`progress-bar ${agent.status === "success" ? "success" : ""}`}
+              className={`progress-bar ${agent.status === "success" ? "success" : ""} ${agent.status === "failed" ? "failed" : ""}`}
               initial={{ width: 0 }}
               animate={{ width: `${agent.progress}%` }}
               transition={{ duration: 0.5 }}
@@ -139,7 +152,11 @@ const AgentNode = ({ agent, onSelect, onAddChild }) => {
                 />
               ) : null}
               {agent.progress.toFixed(0)}%{" "}
-              {agent.status === "success" ? "Complete" : "Processing"}
+              {agent.status === "success"
+                ? "Complete"
+                : agent.status === "failed"
+                  ? "Failed"
+                  : "Processing"}
             </span>
             {agent.children.length > 0 && (
               <span
@@ -166,11 +183,7 @@ const AgentNode = ({ agent, onSelect, onAddChild }) => {
           >
             {agent.children.map((child) => (
               <div key={child.id} className="tree-child-wrapper">
-                <AgentNode
-                  agent={child}
-                  onSelect={onSelect}
-                  onAddChild={onAddChild}
-                />
+                <AgentNode agent={child} onSelect={onSelect} />
               </div>
             ))}
           </motion.div>
@@ -179,6 +192,8 @@ const AgentNode = ({ agent, onSelect, onAddChild }) => {
     </div>
   );
 };
+
+// ─── ThoughtModal (Activity Log) ────────────────────────────────────────────────
 
 const ThoughtModal = ({ agent, onClose }) => {
   if (!agent) return null;
@@ -234,7 +249,7 @@ const ThoughtModal = ({ agent, onClose }) => {
               </div>
             </motion.div>
           ))}
-          {agent.status !== "success" && (
+          {agent.status !== "success" && agent.status !== "failed" && (
             <motion.div
               className="thought-item cursor-blink"
               initial={{ opacity: 0 }}
@@ -253,7 +268,7 @@ const ThoughtModal = ({ agent, onClose }) => {
   );
 };
 
-const generateId = () => Math.random().toString(16).substring(2, 8);
+// ─── VoiceWaveform ──────────────────────────────────────────────────────────────
 
 const VoiceWaveform = ({ isListening }) => {
   const bars = 30;
@@ -289,7 +304,7 @@ const VoiceWaveform = ({ isListening }) => {
         audioContextRef.current = audioCtx;
 
         const analyser = audioCtx.createAnalyser();
-        analyser.fftSize = 64; // Small sample size for smooth 30 bars
+        analyser.fftSize = 64;
         analyserRef.current = analyser;
 
         const source = audioCtx.createMediaStreamSource(stream);
@@ -345,6 +360,23 @@ const VoiceWaveform = ({ isListening }) => {
     </div>
   );
 };
+
+// ─── ElevenLabs system prompt for startup spec collection ───────────────────────
+
+const STARTUP_SPEC_PROMPT = `You are an enthusiastic and perceptive startup idea specialist having a natural conversation to deeply understand a user's project or startup idea. The details you collect will be used to actually BUILD the project with an AI engineering team, so specifics matter.
+
+Your approach:
+- Match the user's energy and excitement level — if they're fired up, match that energy. If they're thoughtful, be thoughtful.
+- Ask smart, probing follow-up questions to drill into specifics
+- Naturally cover: what it does, who it's for, key features, how users interact with it, technical preferences (web app, mobile, desktop, game, etc.), visual design preferences, and what makes it unique
+- Ask 1-2 questions at a time — don't overwhelm, keep it conversational
+- Be genuinely curious and build on what they share
+- Push for specifics: "What would that screen look like?" "How would a user do X?" "What happens when..."
+- Think about what an engineering team needs to know to build this
+- When you have enough detail, briefly summarize what you've captured and ask if anything is missing
+- Keep responses concise and high-energy`;
+
+// ─── ConversationView ───────────────────────────────────────────────────────────
 
 const ConversationView = ({ onComplete }) => {
   const agentId = "agent_0701kj1g8xppe1p9yzyqz8kevtmf";
@@ -424,9 +456,9 @@ const ConversationView = ({ onComplete }) => {
             message?.type ||
             message?.data?.role ||
             message?.payload?.role ||
-            "";
-          const prefix = role ? `${role}: ` : "";
-          const next = [...transcriptRef.current, `${prefix}${text}`];
+            "unknown";
+          const entry = { role, text: text.trim() };
+          const next = [...transcriptRef.current, entry];
           transcriptRef.current = next;
           setTranscript(next);
         },
@@ -476,12 +508,7 @@ const ConversationView = ({ onComplete }) => {
 
   const handleFinalize = async () => {
     await stopConversation();
-    // Mock summary until Manager Agent returns the real spec
-    const transcriptText = transcriptRef.current.length
-      ? transcriptRef.current.map((line) => `- ${line}`).join("\n")
-      : "";
-    const spec = transcriptText;
-    onComplete(spec);
+    onComplete(transcriptRef.current);
   };
 
   return (
@@ -489,8 +516,8 @@ const ConversationView = ({ onComplete }) => {
       <div className="conversation-header">
         <h2 className="sleek-title">Start your conversation</h2>
         <p className="sleek-subtitle">
-          Speak naturally and we’ll capture the transcript to power your Project
-          Specification.
+          Speak naturally about your startup idea and we'll capture everything to
+          build your project.
         </p>
       </div>
 
@@ -521,142 +548,358 @@ const ConversationView = ({ onComplete }) => {
   );
 };
 
+// ─── Main App ───────────────────────────────────────────────────────────────────
+
+const WS_URL = `ws://${window.location.hostname}:8000/ws/engine`;
+
 export default function App() {
   const [currentView, setCurrentView] = useState("conversation");
   const [jobSpec, setJobSpec] = useState("");
-  const [isProcessing] = useState(true);
+  const [agents, setAgents] = useState([]);
+  const [selectedAgentId, setSelectedAgentId] = useState(null);
+  const [engineStatus, setEngineStatus] = useState("idle");
+  const wsRef = useRef(null);
 
-  const [agents, setAgents] = useState([
-    {
-      id: generateId(),
-      name: "Manager Agent",
-      task: "Identifying functional requirements and extracting core features from The Final Prompt.",
-      progress: 85.0,
-      status: "active",
-      thoughts: getThoughtsForRole("Manager"),
-      children: [
-        {
-          id: generateId(),
-          name: "Architect Agent",
-          task: "Designing tech stack, architecture, and scaffolding file structure.",
-          progress: 54.2,
-          status: "active",
-          thoughts: getThoughtsForRole("Architect"),
-          children: [
-            {
-              id: generateId(),
-              name: "SWE Lead",
-              task: "Decomposing architecture into parallel tasks and delegating to SWEs.",
-              progress: 30.5,
-              status: "active",
-              thoughts: getThoughtsForRole("SWE Lead"),
-              children: [
-                {
-                  id: generateId(),
-                  name: "SWE Node A",
-                  task: "Implementing core physics engine logic.",
-                  progress: 15.0,
-                  status: "active",
-                  thoughts: getThoughtsForRole("SWE Node Alpha"),
-                  children: [],
-                },
-                {
-                  id: generateId(),
-                  name: "SWE Node B",
-                  task: "Building WebGL rendering pipeline hooks.",
-                  progress: 8.2,
-                  status: "active",
-                  thoughts: getThoughtsForRole("SWE Node Beta"),
-                  children: [],
-                },
-              ],
-            },
-            {
-              id: generateId(),
-              name: "QA Lead",
-              task: "Developing testing matrices and monitoring SWE outputs.",
-              progress: 12.0,
-              status: "pending",
-              thoughts: getThoughtsForRole("QA Lead"),
-              children: [],
-            },
-          ],
-        },
-      ],
-    },
-  ]);
+  // Derive selected agent from tree for always-fresh data in modal.
+  const selectedAgent = selectedAgentId
+    ? findNodeInTree(agents, selectedAgentId)
+    : null;
 
-  const [selectedAgent, setSelectedAgent] = useState(null);
+  // ─── Engine event handler ───────────────────────────────────────────────────
 
-  const addChild = (nodes, parentId, parentName) => {
-    return nodes.map((node) => {
-      if (node.id === parentId) {
-        let childName =
-          "SWE Node " +
-          String.fromCharCode(65 + Math.floor(Math.random() * 26));
-        let childTask = "Executing parallel software engineering objective...";
+  const handleEngineEvent = useCallback((event) => {
+    const { type, task_id, parent_id, team, description, status, data, timestamp } =
+      event;
+    const time = makeTimeStr(timestamp);
 
-        const newChild = {
-          id: generateId(),
-          name: childName,
-          task: childTask,
+    switch (type) {
+      case "heartbeat":
+        break;
+
+      case "engine_started":
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: "Engine initialized",
+                time,
+                status: "success",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "spec_created":
+        setJobSpec(data?.spec || "");
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            progress: Math.max(node.progress, 10),
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: "Project specification generated from conversation",
+                time,
+                status: "success",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "planning_iteration":
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            progress: Math.min(node.progress + 5, 90),
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: `Planning iteration ${data?.iteration || "?"}`,
+                time,
+                status: "success",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "task_dispatched":
+      case "subtask_dispatched": {
+        const nodeName = teamToName(team);
+        const newNode = {
+          id: task_id,
+          name: nodeName,
+          task: description || "Processing...",
           progress: 0,
           status: "pending",
-          thoughts: getThoughtsForRole(childName),
+          thoughts: [
+            {
+              id: 0,
+              text: `Dispatched to ${team || "engineering"} team`,
+              time,
+              status: "success",
+            },
+          ],
           children: [],
         };
-        return { ...node, children: [...node.children, newChild] };
+        setAgents((prev) => {
+          // If parent_id given but parent doesn't exist in tree, fall back to root.
+          const effectiveParent =
+            parent_id && findNodeInTree(prev, parent_id)
+              ? parent_id
+              : null;
+          return addNodeToTree(prev, effectiveParent, newNode);
+        });
+        break;
       }
-      if (node.children.length > 0) {
-        return {
-          ...node,
-          children: addChild(node.children, parentId, parentName),
-        };
-      }
-      return node;
-    });
-  };
 
-  const handleAddChild = (parentId, parentName) => {
-    setAgents((prev) => addChild(prev, parentId, parentName));
-  };
+      case "task_started":
+        setAgents((prev) =>
+          updateNodeInTree(prev, task_id, (node) => ({
+            ...node,
+            status: "active",
+            progress: Math.max(node.progress, 10),
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: "Worker started processing...",
+                time,
+                status: "pending",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "task_completed": {
+        const isSuccess = status === "complete";
+        const isFailed = status === "failed";
+        setAgents((prev) =>
+          updateNodeInTree(prev, task_id, (node) => ({
+            ...node,
+            status: isSuccess ? "success" : isFailed ? "failed" : "active",
+            progress: isSuccess || isFailed ? 100 : Math.max(node.progress, 80),
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: data?.summary || `Task ${status}`,
+                time,
+                status: isSuccess ? "success" : "pending",
+              },
+            ],
+          }))
+        );
+        break;
+      }
+
+      case "subplanner_started":
+        setAgents((prev) =>
+          updateNodeInTree(prev, task_id, (node) => ({
+            ...node,
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: "Task is complex — decomposing into subtasks...",
+                time,
+                status: "pending",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "build_complete":
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            progress: 95,
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: `Build complete — ${data?.tasks_completed || 0}/${data?.tasks_dispatched || 0} tasks completed`,
+                time,
+                status: "success",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "validation_started":
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: "Post-build validation started...",
+                time,
+                status: "pending",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "engine_done":
+        setEngineStatus("done");
+        setAgents((prev) =>
+          updateNodeInTree(prev, "planner-root", (node) => ({
+            ...node,
+            progress: 100,
+            status: "success",
+            thoughts: [
+              ...node.thoughts,
+              {
+                id: node.thoughts.length,
+                text: `All done! Total time: ${data?.total_time || "?"}s, tokens: ${data?.total_tokens?.toLocaleString() || "?"}`,
+                time,
+                status: "success",
+              },
+            ],
+          }))
+        );
+        break;
+
+      case "error":
+        setEngineStatus("error");
+        console.error("Engine error:", event.message);
+        break;
+
+      default:
+        console.log("Unhandled engine event:", type, event);
+    }
+  }, []);
+
+  // ─── Connect to engine backend ──────────────────────────────────────────────
+
+  const connectToEngine = useCallback(
+    (transcript) => {
+      setEngineStatus("connecting");
+
+      // Create root planner node.
+      setAgents([
+        {
+          id: "planner-root",
+          name: "Manager Agent",
+          task: "Analyzing conversation and planning project...",
+          progress: 0,
+          status: "active",
+          thoughts: [
+            {
+              id: 0,
+              text: "Engine starting, processing conversation...",
+              time: makeTimeStr(),
+              status: "pending",
+            },
+          ],
+          children: [],
+        },
+      ]);
+
+      const ws = new WebSocket(WS_URL);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setEngineStatus("running");
+        ws.send(JSON.stringify({ type: "start", conversation: transcript }));
+      };
+
+      ws.onmessage = (evt) => {
+        try {
+          const event = JSON.parse(evt.data);
+          handleEngineEvent(event);
+        } catch (err) {
+          console.error("Failed to parse engine event:", err);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error("WebSocket error:", err);
+        setEngineStatus("error");
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+      };
+    },
+    [handleEngineEvent]
+  );
+
+  // ─── Animate progress for active nodes ────────────────────────────────────
 
   useEffect(() => {
-    if (!isProcessing) return;
+    if (engineStatus !== "running") return;
 
-    const updateProgress = (nodes) => {
-      return nodes.map((node) => {
-        let increment = 0;
-        if (node.status === "active") {
-          increment = Math.random() * 2.5;
+    const tick = (nodes) =>
+      nodes.map((node) => {
+        let newProgress = node.progress;
+        if (node.status === "active" && newProgress < 90) {
+          newProgress = Math.min(newProgress + Math.random() * 1.5, 90);
         }
-
-        let newProgress = Math.min(node.progress + increment, 100);
-        let newStatus = node.status;
-
-        if (newProgress >= 100) {
-          newProgress = 100;
-          newStatus = "success";
-        } else if (newStatus === "pending" && Math.random() > 0.8) {
-          newStatus = "active";
-        }
-
         return {
           ...node,
           progress: newProgress,
-          status: newStatus,
           children:
-            node.children.length > 0 ? updateProgress(node.children) : [],
+            node.children.length > 0 ? tick(node.children) : node.children,
         };
       });
-    };
 
-    const interval = setInterval(() => {
-      setAgents((prev) => updateProgress(prev));
-    }, 1000);
-
+    const interval = setInterval(() => setAgents((prev) => tick(prev)), 1500);
     return () => clearInterval(interval);
-  }, [isProcessing]);
+  }, [engineStatus]);
+
+  // ─── Cleanup WebSocket on unmount ─────────────────────────────────────────
+
+  useEffect(() => {
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
+    };
+  }, []);
+
+  // ─── Handlers ─────────────────────────────────────────────────────────────
+
+  const handleConversationComplete = useCallback(
+    (transcript) => {
+      // Show transcript in spec area until spec_created event replaces it.
+      const displayText = transcript
+        .map((msg) => `${msg.role}: ${msg.text}`)
+        .join("\n");
+      setJobSpec(displayText || "Generating specification from conversation...");
+      setCurrentView("visualization");
+      connectToEngine(transcript);
+    },
+    [connectToEngine]
+  );
+
+  const handleBackToConversation = useCallback(() => {
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    setAgents([]);
+    setJobSpec("");
+    setEngineStatus("idle");
+    setSelectedAgentId(null);
+    setCurrentView("conversation");
+  }, []);
+
+  // ─── Render ───────────────────────────────────────────────────────────────
 
   return (
     <div className="app-container">
@@ -665,23 +908,37 @@ export default function App() {
           <h1>The Final Prompt</h1>
         </div>
         {currentView === "visualization" && (
-          <button
-            className="view-tab"
-            onClick={() => setCurrentView("conversation")}
-          >
-            Back to Conversation
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            {engineStatus === "connecting" && (
+              <span className="sleek-subtitle" style={{ fontSize: "12px" }}>
+                Connecting...
+              </span>
+            )}
+            {engineStatus === "running" && (
+              <span className="sleek-subtitle" style={{ fontSize: "12px" }}>
+                Engine running...
+              </span>
+            )}
+            {engineStatus === "done" && (
+              <span style={{ fontSize: "12px", color: "#10b981" }}>
+                Build complete
+              </span>
+            )}
+            {engineStatus === "error" && (
+              <span style={{ fontSize: "12px", color: "#ef4444" }}>
+                Engine error
+              </span>
+            )}
+            <button className="view-tab" onClick={handleBackToConversation}>
+              Back to Conversation
+            </button>
+          </div>
         )}
       </nav>
 
       <main className="main-content">
         {currentView === "conversation" ? (
-          <ConversationView
-            onComplete={(spec) => {
-              setJobSpec(spec);
-              setCurrentView("visualization");
-            }}
-          />
+          <ConversationView onComplete={handleConversationComplete} />
         ) : (
           <>
             <div className="prompt-container">
@@ -689,30 +946,32 @@ export default function App() {
                 <span>Project Specification</span>
               </div>
               <div className="prompt-body">
-                <div className="prompt-display custom-scrollbar">{jobSpec}</div>
-              </div>
-              <div style={{ marginTop: "12px", textAlign: "center" }}>
-                <span className="sleek-subtitle">Repo:</span>{" "}
-                <a
-                  className="sleek-subtitle"
-                  href="https://github.com/example/project-repo"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  github.com/example/project-repo
-                </a>
+                <div className="prompt-display custom-scrollbar">
+                  {jobSpec || "Generating specification from conversation..."}
+                </div>
               </div>
             </div>
 
             <div className="hierarchy-container">
-              {agents.map((agent) => (
-                <AgentNode
-                  key={agent.id}
-                  agent={agent}
-                  onSelect={setSelectedAgent}
-                  onAddChild={handleAddChild}
-                />
-              ))}
+              {agents.length > 0 ? (
+                agents.map((agent) => (
+                  <AgentNode
+                    key={agent.id}
+                    agent={agent}
+                    onSelect={setSelectedAgentId}
+                  />
+                ))
+              ) : (
+                <div
+                  style={{
+                    textAlign: "center",
+                    color: "#8b8b8d",
+                    padding: "40px",
+                  }}
+                >
+                  Connecting to engine...
+                </div>
+              )}
             </div>
           </>
         )}
@@ -722,7 +981,7 @@ export default function App() {
         {selectedAgent && (
           <ThoughtModal
             agent={selectedAgent}
-            onClose={() => setSelectedAgent(null)}
+            onClose={() => setSelectedAgentId(null)}
           />
         )}
       </AnimatePresence>

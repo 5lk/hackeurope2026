@@ -553,6 +553,10 @@
     /* sleek dark gray instead of yellow */
 }
 
+.status-indicator.failed {
+    background-color: #ef4444;
+}
+
 .icon-btn {
     background: transparent;
     border: 1px solid var(--agent-border);
@@ -599,6 +603,18 @@
 
 .progress-bar.success {
     background: var(--success-color);
+}
+
+.progress-bar.failed {
+    background: #ef4444;
+}
+
+.agent-card.failed-card {
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.failed-card .completion-text {
+    color: #ef4444;
 }
 
 .agent-footer {
