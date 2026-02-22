@@ -382,7 +382,17 @@ const ConversationView = ({ onComplete }) => {
           setConversationStatus("Connection error.");
         },
         onStatusChange: (status) => {
-          setConversationStatus(`Status: ${status}`);
+          const nextStatus =
+            typeof status === "string"
+              ? status
+              : status && typeof status === "object" && "status" in status
+                ? status.status
+                : JSON.stringify(status);
+          const prettyStatus =
+            typeof nextStatus === "string" && nextStatus.length
+              ? `${nextStatus[0].toUpperCase()}${nextStatus.slice(1)}`
+              : "Status update";
+          setConversationStatus(prettyStatus);
         },
         onModeChange: (mode) => {
           if (mode === "speaking") {
@@ -398,9 +408,23 @@ const ConversationView = ({ onComplete }) => {
             message?.message ||
             message?.content ||
             message?.transcript ||
+            message?.data?.text ||
+            message?.data?.message ||
+            message?.data?.content ||
+            message?.data?.transcript ||
+            message?.payload?.text ||
+            message?.payload?.message ||
+            message?.payload?.content ||
+            message?.payload?.transcript ||
             "";
           if (!text.trim()) return;
-          const role = message?.role || message?.speaker || message?.type || "";
+          const role =
+            message?.role ||
+            message?.speaker ||
+            message?.type ||
+            message?.data?.role ||
+            message?.payload?.role ||
+            "";
           const prefix = role ? `${role}: ` : "";
           const next = [...transcriptRef.current, `${prefix}${text}`];
           transcriptRef.current = next;
@@ -454,25 +478,19 @@ const ConversationView = ({ onComplete }) => {
     await stopConversation();
     // Mock summary until Manager Agent returns the real spec
     const transcriptText = transcriptRef.current.length
-      ? transcriptRef.current.join("\n")
-      : "- (No transcript captured)";
-    const spec =
-      "Conversation Summary:\n" +
-      transcriptText +
-      "\n\nGoal:\n" +
-      "- Deliver an MVP with a clear architecture and build plan\n\n" +
-      "Next:\n" +
-      "- Hand off to Manager Agent for full spec generation.";
+      ? transcriptRef.current.map((line) => `- ${line}`).join("\n")
+      : "";
+    const spec = transcriptText;
     onComplete(spec);
   };
 
   return (
     <div className="conversation-layout">
       <div className="conversation-header">
-        <h2 className="sleek-title">Awaiting Instructions</h2>
+        <h2 className="sleek-title">Start your conversation</h2>
         <p className="sleek-subtitle">
-          Start a live conversation with the AI Architect. We’ll capture the
-          goal and summarize it when you finish.
+          Speak naturally and we’ll capture the transcript to power your Project
+          Specification.
         </p>
       </div>
 
