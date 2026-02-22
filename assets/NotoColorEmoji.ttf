@@ -1,0 +1,7 @@
+[Binary TTF Font File: NotoColorEmoji.ttf]
+
+This is a placeholder for the Noto Color Emoji font file. As a binary file, its content cannot be represented as text in this format.
+
+To make the game work, you need to:
+1. Download the 'NotoColorEmoji.ttf' font. A common source is the Google Noto Fonts repository.
+2. Place the downloaded 'NotoColorEmoji.ttf' file into the 'assets/' directory of your project.

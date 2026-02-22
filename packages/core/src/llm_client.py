@@ -26,7 +26,7 @@ class LLMClient:
         api_key: Optional[str] = None,
         model: str = "gemini-1.5-pro",
         temperature: float = 0.2,
-        max_output_tokens: int = 2048,
+        max_output_tokens: int = 8192,
     ) -> None:
         self.api_key = api_key or os.getenv("GEMINI_API_KEY")
         if not self.api_key:
