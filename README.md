@@ -1,16 +1,28 @@
-# React + Vite
+# The Final Prompt
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A one‑prompt generation interface: capture a single conversation and turn it into a complete, user‑defined app output.
 
-Currently, two official plugins are available:
+## How to run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### Backend
+```/dev/null/commands.txt#L1-2
+python -m engine.server
+or
+uvicorn engine.server:app
+```
 
-## React Compiler
+### Frontend
+```/dev/null/commands.txt#L4-5
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Usage
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Start the backend (`python -m engine.server` or `uvicorn engine.server:app`).
+2. Start the frontend (`npm install` then `npm run dev`).
+3. Open the app in your browser.
+4. Click the mic button to begin a conversation.
+5. Click **Finish Conversation** to view the transcript in **Project Specification**.
+6. Visualize the workflow.
+7. Open the generated app from the output folder when it auto-opens in your file explorer.
