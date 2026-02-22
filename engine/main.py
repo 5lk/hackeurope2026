@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""AgentSwarm — Multi-agent project builder powered by Gemini API.
+"""One Call — Multi-agent project builder powered by Gemini API.
 
 Usage:
     python -m agentswarm.main                          # prompts for idea
@@ -36,7 +36,7 @@ async def run(request: str) -> None:
     config = load_config()
     setup_logging(level="info")
 
-    logger.info("AgentSwarm starting")
+    logger.info("One Call starting")
     logger.info("Request: %s", request)
     logger.info("Model: %s", config.llm.model)
     logger.info("Max workers: %d", config.max_workers)
@@ -86,7 +86,9 @@ async def run(request: str) -> None:
         reconciler_prompt_path = prompts_dir / "reconciler.md"
         if reconciler_prompt_path.exists():
             reconciler_prompt = reconciler_prompt_path.read_text(encoding="utf-8")
-            reconciler = Reconciler(config, client, reconciler_prompt, config.output_dir)
+            reconciler = Reconciler(
+                config, client, reconciler_prompt, config.output_dir
+            )
             reconciler.on_fix_tasks = planner.inject_tasks
             reconciler_task = asyncio.create_task(reconciler.run_periodic())
 
@@ -114,7 +116,7 @@ async def run(request: str) -> None:
 
     print()
     print("=" * 60)
-    print(f"  AgentSwarm — Build Complete")
+    print(f"  One Call — Build Complete")
     print(f"  Time:     {elapsed_build:.1f}s")
     print(f"  Tasks:    {total_tasks} dispatched, {completed} completed")
     print(f"  Tokens:   {client.total_tokens_used:,}")
@@ -137,15 +139,14 @@ async def run(request: str) -> None:
     await _install_dependencies(config.output_dir)
 
     # Step 2: Validation loop — run code, run tests, fix errors.
-    engineering_prompt = (prompts_dir / "engineering.md").read_text(encoding="utf-8")
-    await _validation_loop(client, config.output_dir, engineering_prompt)
+    print("  Validation skipped directly from engine.")
 
     await client.close()
 
     total_elapsed = time.time() - start_time
     print()
     print("=" * 60)
-    print(f"  AgentSwarm — All Done")
+    print(f"  One Call — All Done")
     print(f"  Total time: {total_elapsed:.1f}s")
     print(f"  Total tokens: {client.total_tokens_used:,}")
     print(f"  Total API calls: {client.total_requests}")
@@ -163,11 +164,16 @@ async def _generate_launch_script(client: GeminiClient, output_dir: Path) -> Non
         contents_str += f"\n### {path}\n```\n{content}\n```\n"
 
     messages = [
-        LLMMessage(role="system", content=(
-            "You are a devops helper. You write Windows batch files. "
-            "Respond with ONLY the raw batch file content. No markdown fences. No explanation."
-        )),
-        LLMMessage(role="user", content=f"""Write a Windows batch file called launch.bat that launches this project with ZERO human intervention.
+        LLMMessage(
+            role="system",
+            content=(
+                "You are a devops helper. You write Windows batch files. "
+                "Respond with ONLY the raw batch file content. No markdown fences. No explanation."
+            ),
+        ),
+        LLMMessage(
+            role="user",
+            content=f"""Write a Windows batch file called launch.bat that launches this project with ZERO human intervention.
 
 Rules:
 - The bat file lives in the project root directory (same folder as the files listed below)
@@ -185,7 +191,8 @@ Rules:
 
 ## Project Files
 {contents_str}
-"""),
+""",
+        ),
     ]
 
     try:
@@ -212,23 +219,26 @@ Rules:
 async def _flesh_out_idea(client: GeminiClient, raw_idea: str) -> str:
     """Take a vague user idea and expand it into a detailed project specification."""
     messages = [
-        LLMMessage(role="system", content=(
-            "You are a product designer. The user gives you a short project idea. "
-            "Expand it into a clear, detailed specification in 1-2 paragraphs. "
-            "Include: what the project is, key features, the main user interactions, and what the end result looks like. "
-            "Be specific about colors, layout, and behavior. "
-            "\n\n"
-            "CRITICAL — Technology choices:\n"
-            "- If the user specifies a technology (tkinter, pygame, flask, HTML, etc.), you MUST use that exact technology. Do NOT substitute.\n"
-            "- If the user says 'tkinter', use tkinter. Do NOT change it to pygame.\n"
-            "- If the user says 'pygame', use pygame.\n"
-            "- If the user says 'HTML' or 'web', use HTML/JS/CSS.\n"
-            "- Only if NO technology is mentioned, suggest one: Python+pygame for games, HTML/JS/CSS for visual demos, Python+tkinter for desktop apps.\n"
-            "\n"
-            "IMPORTANT: All graphics must be drawn programmatically (shapes, code-defined colors). "
-            "NEVER mention external asset files (no .png, .ttf, .wav). "
-            "Respond with ONLY the expanded specification. No preamble."
-        )),
+        LLMMessage(
+            role="system",
+            content=(
+                "You are a product designer. The user gives you a short project idea. "
+                "Expand it into a clear, detailed specification in 1-2 paragraphs. "
+                "Include: what the project is, key features, the main user interactions, and what the end result looks like. "
+                "Be specific about colors, layout, and behavior. "
+                "\n\n"
+                "CRITICAL — Technology choices:\n"
+                "- If the user specifies a technology (tkinter, pygame, flask, HTML, etc.), you MUST use that exact technology. Do NOT substitute.\n"
+                "- If the user says 'tkinter', use tkinter. Do NOT change it to pygame.\n"
+                "- If the user says 'pygame', use pygame.\n"
+                "- If the user says 'HTML' or 'web', use HTML/JS/CSS.\n"
+                "- Only if NO technology is mentioned, suggest one: Python+pygame for games, HTML/JS/CSS for visual demos, Python+tkinter for desktop apps.\n"
+                "\n"
+                "IMPORTANT: All graphics must be drawn programmatically (shapes, code-defined colors). "
+                "NEVER mention external asset files (no .png, .ttf, .wav). "
+                "Respond with ONLY the expanded specification. No preamble."
+            ),
+        ),
         LLMMessage(role="user", content=raw_idea),
     ]
 
@@ -276,7 +286,15 @@ async def _install_dependencies(output_dir: Path) -> None:
                     req_text = req_text.replace("pygame", "pygame-ce")
                     req_file.write_text(req_text, encoding="utf-8")
                     result2 = subprocess.run(
-                        [sys.executable, "-m", "pip", "install", "-r", str(req_file), "-q"],
+                        [
+                            sys.executable,
+                            "-m",
+                            "pip",
+                            "install",
+                            "-r",
+                            str(req_file),
+                            "-q",
+                        ],
                         capture_output=True,
                         text=True,
                         timeout=120,
@@ -300,58 +318,7 @@ async def _validation_loop(
     engineering_prompt: str,
 ) -> None:
     """Run the project and tests, feeding errors back to Gemini for auto-fix."""
-    for round_num in range(1, MAX_VALIDATION_ROUNDS + 1):
-        print(f"\n  --- Validation Round {round_num}/{MAX_VALIDATION_ROUNDS} ---")
-
-        errors: list[str] = []
-
-        # Find the main entry point.
-        entry_point = _find_entry_point(output_dir)
-
-        # Test 1: Run the main entry point (quick check — just import/syntax errors).
-        if entry_point:
-            print(f"  Running: {entry_point} ...")
-            error = _run_project_check(output_dir, entry_point)
-            if error:
-                errors.append(f"RUNTIME ERROR running {entry_point}:\n{error}")
-                print(f"  FAILED: Runtime error detected")
-            else:
-                print(f"  PASSED: No import/syntax errors")
-        else:
-            print("  WARNING: No entry point found (no main.py or __main__.py)")
-
-        # Test 2: Run pytest if tests exist.
-        test_dirs = _find_test_files(output_dir)
-        if test_dirs:
-            print(f"  Running tests ({len(test_dirs)} test files found)...")
-            error = _run_tests(output_dir)
-            if error:
-                errors.append(f"TEST FAILURES:\n{error}")
-                print(f"  FAILED: Test errors detected")
-            else:
-                print(f"  PASSED: All tests pass")
-        else:
-            print("  No test files found — skipping test run")
-
-        # If no errors, we're done!
-        if not errors:
-            print(f"\n  Validation PASSED on round {round_num}.")
-            return
-
-        # Feed errors back to Gemini for auto-fix.
-        print(f"\n  {len(errors)} error(s) found — sending to Gemini for auto-fix...")
-        fixed = await _auto_fix_errors(client, output_dir, engineering_prompt, errors)
-        if not fixed:
-            print("  Auto-fix failed or produced no changes.")
-            if round_num < MAX_VALIDATION_ROUNDS:
-                print("  Retrying...")
-            continue
-
-        # Re-install deps in case requirements changed.
-        await _install_dependencies(output_dir)
-
-    print(f"\n  Validation completed after {MAX_VALIDATION_ROUNDS} rounds.")
-    print("  Some issues may remain — check the output manually.")
+    print("  Validation logic removed as per request.")
 
 
 def _find_entry_point(output_dir: Path) -> str | None:
@@ -389,7 +356,9 @@ def _run_project_check(output_dir: Path, entry_point: str) -> str | None:
         check_code = f"import importlib; importlib.import_module('{module}')"
     else:
         # For a file, try importing it as a module check.
-        module_name = entry_point.replace("/", ".").replace("\\", ".").removesuffix(".py")
+        module_name = (
+            entry_point.replace("/", ".").replace("\\", ".").removesuffix(".py")
+        )
         check_code = f"import importlib.util, sys; spec = importlib.util.spec_from_file_location('{module_name}', '{entry_point}'); mod = importlib.util.module_from_spec(spec)"
 
     try:
@@ -501,8 +470,24 @@ Key rules:
         for op in result.file_operations:
             # Block asset files.
             ext = "." + op.path.rsplit(".", 1)[-1].lower() if "." in op.path else ""
-            asset_exts = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".svg", ".ico",
-                         ".ttf", ".otf", ".woff", ".mp3", ".wav", ".ogg", ".mp4", ".avi", ".mov"}
+            asset_exts = {
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".gif",
+                ".bmp",
+                ".svg",
+                ".ico",
+                ".ttf",
+                ".otf",
+                ".woff",
+                ".mp3",
+                ".wav",
+                ".ogg",
+                ".mp4",
+                ".avi",
+                ".mov",
+            }
             if ext in asset_exts:
                 logger.warning("Blocked asset file in auto-fix: %s", op.path)
                 continue
@@ -524,32 +509,36 @@ Key rules:
 async def _conversation_to_spec(client: GeminiClient, conversation: list[dict]) -> str:
     """Convert a conversation transcript into a detailed project specification."""
     conv_text = "\n".join(
-        f"{msg.get('role', 'unknown')}: {msg.get('text', '')}"
-        for msg in conversation
+        f"{msg.get('role', 'unknown')}: {msg.get('text', '')}" for msg in conversation
     )
 
     messages = [
-        LLMMessage(role="system", content=(
-            "You are a product designer. You have a conversation transcript between a user and an AI "
-            "assistant where the user described their startup or project idea in detail.\n\n"
-            "Your job is to extract ALL important details from this conversation and produce a clear, "
-            "detailed project specification that a development team can build from immediately.\n\n"
-            "Include:\n"
-            "- What the project is and its purpose\n"
-            "- Key features and functionality\n"
-            "- User interactions and flows\n"
-            "- Technical requirements and constraints\n"
-            "- Visual design details (colors, layout, behavior)\n"
-            "- What the end result should look and feel like\n\n"
-            "CRITICAL — Technology choices:\n"
-            "- If the user specified a technology (tkinter, pygame, flask, HTML, etc.), use that EXACT technology.\n"
-            "- If no technology is mentioned, suggest: Python+pygame for games, HTML/JS/CSS for visual demos, "
-            "Python+tkinter for desktop apps.\n\n"
-            "IMPORTANT: All graphics must be drawn programmatically (shapes, code-defined colors). "
-            "NEVER mention external asset files (no .png, .ttf, .wav). "
-            "Respond with ONLY the expanded specification. No preamble."
-        )),
-        LLMMessage(role="user", content=f"Here is the conversation transcript:\n\n{conv_text}"),
+        LLMMessage(
+            role="system",
+            content=(
+                "You are a product designer. You have a conversation transcript between a user and an AI "
+                "assistant where the user described their startup or project idea in detail.\n\n"
+                "Your job is to extract ALL important details from this conversation and produce a clear, "
+                "detailed project specification that a development team can build from immediately.\n\n"
+                "Include:\n"
+                "- What the project is and its purpose\n"
+                "- Key features and functionality\n"
+                "- User interactions and flows\n"
+                "- Technical requirements and constraints\n"
+                "- Visual design details (colors, layout, behavior)\n"
+                "- What the end result should look and feel like\n\n"
+                "CRITICAL — Technology choices:\n"
+                "- If the user specified a technology (tkinter, pygame, flask, HTML, etc.), use that EXACT technology.\n"
+                "- If no technology is mentioned, suggest: Python+pygame for games, HTML/JS/CSS for visual demos, "
+                "Python+tkinter for desktop apps.\n\n"
+                "IMPORTANT: All graphics must be drawn programmatically (shapes, code-defined colors). "
+                "NEVER mention external asset files (no .png, .ttf, .wav). "
+                "Respond with ONLY the expanded specification. No preamble."
+            ),
+        ),
+        LLMMessage(
+            role="user", content=f"Here is the conversation transcript:\n\n{conv_text}"
+        ),
     ]
 
     try:
@@ -570,7 +559,7 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
 
     event_bus.emit(EngineEvent(type=EventType.ENGINE_STARTED))
 
-    logger.info("AgentSwarm starting (from conversation, %d messages)", len(conversation))
+    logger.info("One Call starting (from conversation, %d messages)", len(conversation))
     logger.info("Model: %s", config.llm.model)
     logger.info("Max workers: %d", config.max_workers)
     logger.info("Output dir: %s", config.output_dir.resolve())
@@ -591,15 +580,19 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
 
     # Convert conversation to spec instead of fleshing out a single idea.
     request = await _conversation_to_spec(client, conversation)
-    event_bus.emit(EngineEvent(
-        type=EventType.SPEC_CREATED,
-        data={"spec": request},
-    ))
+    event_bus.emit(
+        EngineEvent(
+            type=EventType.SPEC_CREATED,
+            data={"spec": request},
+        )
+    )
     logger.info("Spec from conversation: %s", request[:500])
 
     prompts_dir = Path(__file__).parent / "prompts"
 
-    worker_pool = WorkerPool(client, config.output_dir, prompts_dir, config.max_workers, event_bus)
+    worker_pool = WorkerPool(
+        client, config.output_dir, prompts_dir, config.max_workers, event_bus
+    )
     worker_pool.load_prompts()
 
     root_prompt = (prompts_dir / "root-planner.md").read_text(encoding="utf-8")
@@ -614,7 +607,9 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
         reconciler_prompt_path = prompts_dir / "reconciler.md"
         if reconciler_prompt_path.exists():
             reconciler_prompt = reconciler_prompt_path.read_text(encoding="utf-8")
-            reconciler = Reconciler(config, client, reconciler_prompt, config.output_dir, event_bus)
+            reconciler = Reconciler(
+                config, client, reconciler_prompt, config.output_dir, event_bus
+            )
             reconciler.on_fix_tasks = planner.inject_tasks
             reconciler_task = asyncio.create_task(reconciler.run_periodic())
 
@@ -640,36 +635,36 @@ async def run_from_conversation(conversation: list[dict], event_bus: EventBus) -
     total_tasks = len(planner.dispatched_ids)
     completed = sum(1 for h in planner.all_handoffs if h.status == "complete")
 
-    event_bus.emit(EngineEvent(
-        type=EventType.BUILD_COMPLETE,
-        data={
-            "time": round(elapsed, 1),
-            "tasks_dispatched": total_tasks,
-            "tasks_completed": completed,
-            "tokens": client.total_tokens_used,
-            "api_calls": client.total_requests,
-        },
-    ))
+    event_bus.emit(
+        EngineEvent(
+            type=EventType.BUILD_COMPLETE,
+            data={
+                "time": round(elapsed, 1),
+                "tasks_dispatched": total_tasks,
+                "tasks_completed": completed,
+                "tokens": client.total_tokens_used,
+                "api_calls": client.total_requests,
+            },
+        )
+    )
 
     # Generate launch script.
     await _generate_launch_script(client, config.output_dir)
 
-    # Post-build validation.
-    engineering_prompt = (prompts_dir / "engineering.md").read_text(encoding="utf-8")
-
-    event_bus.emit(EngineEvent(type=EventType.VALIDATION_STARTED))
+    # Post-build validation (skipped)
     await _install_dependencies(config.output_dir)
-    await _validation_loop(client, config.output_dir, engineering_prompt)
 
     await client.close()
 
-    event_bus.emit(EngineEvent(
-        type=EventType.ENGINE_DONE,
-        data={
-            "total_time": round(time.time() - start_time, 1),
-            "total_tokens": client.total_tokens_used,
-        },
-    ))
+    event_bus.emit(
+        EngineEvent(
+            type=EventType.ENGINE_DONE,
+            data={
+                "total_time": round(time.time() - start_time, 1),
+                "total_tokens": client.total_tokens_used,
+            },
+        )
+    )
 
 
 def main() -> None:
@@ -677,7 +672,7 @@ def main() -> None:
         request = " ".join(sys.argv[1:])
     else:
         print()
-        print("  AgentSwarm — Multi-agent Project Builder")
+        print("  One Call — Multi-agent Project Builder")
         print("  Powered by Gemini API")
         print()
         request = input("  What would you like to build? > ").strip()

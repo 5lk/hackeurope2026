@@ -108,10 +108,10 @@ const AgentNode = ({ agent, onSelect }) => {
   return (
     <div className="tree-node-wrapper">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className={`agent-card ${agent.status === "success" ? "completed-card" : ""} ${agent.status === "failed" ? "failed-card" : ""}`}
+        initial={{ opacity: 0, x: -20, scale: 0.95 }}
+        animate={{ opacity: 1, x: 0, scale: 1 }}
+        transition={{ duration: 0.4, type: "spring", bounce: 0.3 }}
+        className={`agent-card ${agent.status === "success" ? "completed-card" : ""} ${agent.status === "failed" ? "failed-card" : ""} ${agent.status === "active" ? "active-card" : ""}`}
         onClick={handleSelect}
       >
         <div className="agent-header">
@@ -176,9 +176,10 @@ const AgentNode = ({ agent, onSelect }) => {
       <AnimatePresence>
         {isExpanded && agent.children.length > 0 && (
           <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
+            initial={{ opacity: 0, height: 0, filter: "blur(4px)" }}
+            animate={{ opacity: 1, height: "auto", filter: "blur(0px)" }}
+            exit={{ opacity: 0, height: 0, filter: "blur(4px)" }}
+            transition={{ duration: 0.4, type: "spring", bounce: 0.1 }}
             className="tree-children"
           >
             {agent.children.map((child) => (
@@ -379,7 +380,7 @@ Your approach:
 // ─── ConversationView ───────────────────────────────────────────────────────────
 
 const ConversationView = ({ onComplete }) => {
-  const agentId = "agent_0701kj1g8xppe1p9yzyqz8kevtmf";
+  const agentId = "agent_4701kj22bj22ef3rc0sbc6qs009g";
   const [isListening, setIsListening] = useState(false);
   const [conversationStatus, setConversationStatus] = useState(
     "Tap to start a live conversation.",
@@ -722,7 +723,7 @@ export default function App() {
         setAgents((prev) =>
           updateNodeInTree(prev, "planner-root", (node) => ({
             ...node,
-            progress: 95,
+            progress: 100,
             thoughts: [
               ...node.thoughts,
               {
@@ -730,23 +731,6 @@ export default function App() {
                 text: `Build complete — ${data?.tasks_completed || 0}/${data?.tasks_dispatched || 0} tasks completed`,
                 time,
                 status: "success",
-              },
-            ],
-          }))
-        );
-        break;
-
-      case "validation_started":
-        setAgents((prev) =>
-          updateNodeInTree(prev, "planner-root", (node) => ({
-            ...node,
-            thoughts: [
-              ...node.thoughts,
-              {
-                id: node.thoughts.length,
-                text: "Post-build validation started...",
-                time,
-                status: "pending",
               },
             ],
           }))
@@ -905,7 +889,7 @@ export default function App() {
     <div className="app-container">
       <nav className="topbar">
         <div className="brand">
-          <h1>The Final Prompt</h1>
+          <h1>One Call</h1>
         </div>
         {currentView === "visualization" && (
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
