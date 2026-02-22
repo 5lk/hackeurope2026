@@ -1,0 +1,88 @@
+:root {
+    /* Clean, Professional High-End Dark Theme */
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --text-primary: #ffffff;
+    --text-secondary: #8b8b8d;
+    --accent-color: #ffffff;
+    --accent-hover: #e4e4e7;
+    --success-color: #10b981;
+    --success-bg: rgba(16, 185, 129, 0.1);
+    --agent-bg: #0a0a0a;
+    --agent-border: #27272a;
+    --agent-border-hover: #3f3f46;
+    --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --shadow-md: 0 8px 30px rgba(0, 0, 0, 0.7);
+    --nav-bg: rgba(0, 0, 0, 0.6);
+    --scrollbar-thumb: #27272a;
+    --agent-icon-bg: #121212;
+    --prompt-bg: #0a0a0a;
+    --badge-bg: #18181b;
+    --status-bg: rgba(255, 255, 255, 0.05);
+    --status-border: #27272a;
+    --modal-bg: #0a0a0a;
+    --modal-backdrop: rgba(0, 0, 0, 0.8);
+    --thought-bg: #000000;
+
+    --bg-pattern: radial-gradient(
+        rgba(255, 255, 255, 0.05) 1px,
+        transparent 1px
+    );
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-weight: 200;
+}
+
+body {
+    font-family:
+        "Outfit",
+        system-ui,
+        -apple-system,
+        sans-serif;
+    font-weight: 200;
+    letter-spacing: -0.5px;
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image: var(--bg-pattern);
+    background-size: 32px 32px;
+    transition:
+        background-color 0.3s ease,
+        color 0.3s ease;
+}
+
+#root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+}
+
+.mono-text {
+    font-family:
+        ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
